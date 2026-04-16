@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>스피킹짐 학생관리</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap');
+:root{
+  --bg:#F0EDE8;--surface:#FFF;--border:#DDD9D2;--border2:#C8C4BC;
+  --text:#1C1A17;--text2:#5C5750;--text3:#9C9890;
+  --accent:#E8500A;--accent-light:#FDF0EA;--accent-dark:#C43E05;
+  --blue:#1A6EBF;--blue-bg:#EAF3FC;--blue-dark:#0C4A8A;
+  --green:#1A8A4A;--green-bg:#E8F7EE;
+  --amber:#B86A00;--amber-bg:#FFF4E0;
+  --red:#CC2222;--red-bg:#FDEAEA;
+  --purple:#6B21A8;--purple-bg:#F3EFFE;
+  --r:14px;--r-sm:8px;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:'Noto Sans KR',-apple-system,sans-serif;background:var(--bg);color:var(--text);font-size:15px;line-height:1.5;min-height:100vh}
+
+.auth-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
+.auth-card{background:var(--surface);border:2px solid var(--border);border-radius:20px;padding:36px 28px;width:100%;max-width:380px}
+.auth-logo{font-size:12px;font-weight:700;letter-spacing:.12em;color:var(--accent);text-transform:uppercase;margin-bottom:6px}
+.auth-title{font-size:22px;font-weight:700;margin-bottom:28px}
+.auth-tabs{display:flex;border:2px solid var(--border);border-radius:var(--r-sm);padding:3px;margin-bottom:20px}
+.auth-tab{flex:1;padding:8px;text-align:center;font-size:14px;font-weight:500;cursor:pointer;border-radius:6px;color:var(--text2);transition:all .15s}
+.auth-tab.on{background:var(--text);color:#fff}
+.err{background:var(--red-bg);color:var(--red);padding:10px 14px;border-radius:var(--r-sm);font-size:13px;margin-bottom:14px;display:none;border:1px solid #F7C1C1}
+.err.show{display:block}
+
+.fg{margin-bottom:14px}
+.fl{font-size:13px;font-weight:700;color:var(--text2);margin-bottom:5px;display:block}
+input[type=text],input[type=email],input[type=password],input[type=date],input[type=tel],textarea,select{
+  width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:var(--r-sm);
+  font-size:15px;font-family:inherit;color:var(--text);background:var(--surface);outline:none;
+  transition:border-color .15s;appearance:none;-webkit-appearance:none}
+input:focus,textarea:focus,select:focus{border-color:var(--accent)}
+textarea{resize:vertical;min-height:80px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:10px 18px;
+  border-radius:var(--r-sm);font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;
+  border:2px solid var(--border);background:transparent;color:var(--text);transition:all .15s}
+.btn:active{transform:scale(.97)}
+.btn-primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+.btn-full{width:100%}
+.btn-sm{padding:7px 12px;font-size:13px}
+.btn-danger{color:var(--red);border-color:var(--red-bg)}
+
+.app{display:none;flex-direction:column;height:100vh}
+.app.on{display:flex}
+.app-header{background:var(--surface);border-bottom:2px solid var(--border);padding:13px 16px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.header-left{display:flex;align-items:center;gap:8px}
+.header-title{font-size:17px;font-weight:700}
+.header-sub{font-size:11px;color:var(--text2)}
+.back-btn{display:none;align-items:center;gap:4px;font-size:14px;font-weight:700;color:var(--accent);cursor:pointer;padding:4px 0}
+.back-btn.on{display:flex}
+
+.tab-nav{background:var(--surface);border-bottom:2px solid var(--border);display:flex;overflow-x:auto;flex-shrink:0;scrollbar-width:none}
+.tab-nav::-webkit-scrollbar{display:none}
+.tab-item{flex:1;min-width:56px;padding:11px 6px;text-align:center;font-size:12px;font-weight:700;color:var(--text2);cursor:pointer;border-bottom:3px solid transparent;white-space:nowrap;transition:all .15s}
+.tab-item.on{color:var(--accent);border-bottom-color:var(--accent)}
+
+.content{flex:1;overflow-y:auto;padding-bottom:80px}
+.section{display:none;padding:16px}
+.section.on{display:block}
+
+.card{background:var(--surface);border:2px solid var(--border);border-radius:var(--r);padding:14px 16px;margin-bottom:10px}
+.card-title{font-size:14px;font-weight:700;margin-bottom:12px}
+
+.s-card{background:var(--surface);border:2px solid var(--border);border-radius:var(--r);padding:14px 16px;margin-bottom:10px;cursor:pointer;transition:border-color .15s}
+.s-card:active{border-color:var(--accent)}
+.s-row{display:flex;align-items:center;gap:12px}
+.avatar{width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;flex-shrink:0;border:2px solid transparent}
+.av0{background:#FDF0EA;color:#C43E05;border-color:#F5C4B3}
+.av1{background:#EAF3FC;color:#0C4A8A;border-color:#B5D4F4}
+.av2{background:#E8F7EE;color:#14632F;border-color:#9FE1CB}
+.av3{background:#F3EFFE;color:#6B21A8;border-color:#C4B5FD}
+.av4{background:#FFF4E0;color:#854D0E;border-color:#FED7AA}
+.s-name{font-size:16px;font-weight:700}
+.s-meta{font-size:12px;color:var(--text2);margin-top:2px}
+.reenroll-tag{font-size:11px;padding:2px 7px;border-radius:10px;background:var(--amber-bg);color:var(--amber);font-weight:700;border:1px solid #FED7AA}
+
+.badge{display:inline-flex;align-items:center;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700}
+.b-green{background:var(--green-bg);color:var(--green)}
+.b-amber{background:var(--amber-bg);color:var(--amber)}
+.b-red{background:var(--red-bg);color:var(--red)}
+.b-blue{background:var(--blue-bg);color:var(--blue-dark)}
+.b-orange{background:var(--accent-light);color:var(--accent-dark)}
+.b-gray{background:#F0EDE8;color:var(--text2)}
+.b-purple{background:var(--purple-bg);color:var(--purple)}
+
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+.stat-card{background:var(--bg);border-radius:var(--r-sm);padding:14px;border:2px solid var(--border)}
+.stat-val{font-size:26px;font-weight:700}
+.stat-lbl{font-size:12px;color:var(--text2);margin-top:2px;font-weight:500}
+
+.month-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.month-nav span{font-size:15px;font-weight:700}
+.cal-hdr{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:4px}
+.cal-hdr span{text-align:center;font-size:11px;font-weight:700;color:var(--text2);padding:3px 0}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
+.cal-day{aspect-ratio:1;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;cursor:pointer;border:1.5px solid var(--border);background:var(--surface);color:var(--text2)}
+.cal-day.att{background:var(--blue-bg);color:var(--blue-dark);border-color:var(--blue)}
+.cal-day.abs{background:var(--red-bg);color:var(--red);border-color:var(--red)}
+.cal-day.today{outline:2.5px solid var(--text);outline-offset:-1px}
+.cal-day.emp{pointer-events:none;opacity:0;border:none;background:none}
+.att-legend{display:flex;gap:14px;font-size:12px;color:var(--text2);margin-top:10px;font-weight:500}
+.att-legend span{display:flex;align-items:center;gap:5px}
+.dot{width:12px;height:12px;border-radius:3px;flex-shrink:0}
+.att-sum{background:var(--bg);border-radius:var(--r-sm);padding:12px;font-size:13px;color:var(--text2);margin-top:10px;border:2px solid var(--border);font-weight:500}
+.att-sum b{color:var(--text);font-weight:700}
+
+.prog-row{margin-bottom:14px}
+.prog-lrow{display:flex;justify-content:space-between;margin-bottom:5px}
+.prog-lbl{font-size:14px;font-weight:700}
+.prog-val{font-size:14px;font-weight:700}
+.prog-bar{height:10px;background:var(--bg);border-radius:20px;overflow:hidden;margin-bottom:6px;border:1px solid var(--border)}
+.prog-fill{height:100%;border-radius:20px;transition:width .3s}
+input[type=range]{width:100%;accent-color:var(--text)}
+
+.fb-item{padding:12px 0;border-bottom:2px solid var(--border)}
+.fb-item:last-child{border-bottom:none}
+.fb-meta{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.fb-date{font-size:11px;color:var(--text3);font-weight:500}
+.fb-text{font-size:14px;line-height:1.6}
+.chip-row{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.chip{padding:6px 12px;border-radius:20px;font-size:13px;font-weight:700;border:2px solid var(--border);cursor:pointer;color:var(--text2);transition:all .1s}
+.chip.on{background:var(--text);color:#fff;border-color:var(--text)}
+.chip-dash{border-style:dashed}
+
+.hw-row{display:flex;align-items:flex-start;gap:10px;padding:11px 0;border-bottom:2px solid var(--border)}
+.hw-row:last-child{border-bottom:none}
+.hw-check{width:22px;height:22px;border-radius:6px;border:2.5px solid var(--border2);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;margin-top:1px;transition:all .15s}
+.hw-check.done{background:var(--green-bg);border-color:var(--green)}
+.hw-title{font-size:14px;font-weight:500;line-height:1.4}
+.hw-done-text{text-decoration:line-through;color:var(--text3)}
+.hw-due{font-size:11px;color:var(--text3);margin-top:3px;font-weight:500}
+.hw-tag{font-size:10px;font-weight:700;padding:2px 6px;border-radius:8px;margin-left:5px;vertical-align:middle}
+.tag-p{background:var(--blue-bg);color:var(--blue-dark)}
+.tag-c{background:var(--accent-light);color:var(--accent-dark)}
+
+.seg{display:flex;background:var(--bg);border-radius:var(--r-sm);padding:3px;margin-bottom:12px;border:2px solid var(--border)}
+.seg-btn{flex:1;padding:8px;text-align:center;font-size:13px;font-weight:700;border-radius:6px;color:var(--text2);cursor:pointer;transition:all .15s}
+.seg-btn.on{background:var(--surface);color:var(--text);border:1.5px solid var(--border2)}
+
+.s-check-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1.5px solid var(--border)}
+.s-check-row:last-child{border-bottom:none}
+.s-chk{width:22px;height:22px;border-radius:6px;border:2.5px solid var(--border2);flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all .15s;cursor:pointer}
+.s-chk.on{background:var(--blue-bg);border-color:var(--blue)}
+.s-chk-name{font-size:14px;font-weight:700}
+.s-chk-meta{font-size:11px;color:var(--text2)}
+
+.info-tbl{width:100%;font-size:13px;border-collapse:collapse}
+.info-tbl td{padding:6px 0;vertical-align:top;border-bottom:1px solid var(--border)}
+.info-tbl tr:last-child td{border-bottom:none}
+.info-tbl td:first-child{color:var(--text2);width:85px;font-weight:700}
+.info-tbl td:last-child{font-weight:500}
+
+.role-banner{display:flex;align-items:center;gap:8px;padding:10px 14px;border-radius:var(--r-sm);margin-bottom:14px;font-size:13px;font-weight:700;border:2px solid}
+.t-banner{background:var(--accent-light);color:var(--accent-dark);border-color:#F5C4B3}
+.s-banner{background:var(--blue-bg);color:var(--blue-dark);border-color:#B5D4F4}
+
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:100;display:none;align-items:flex-end;justify-content:center}
+.modal-overlay.on{display:flex}
+.modal{background:var(--surface);border-radius:20px 20px 0 0;padding:20px 20px 40px;width:100%;max-width:480px;max-height:92vh;overflow-y:auto}
+.modal-handle{width:40px;height:4px;border-radius:2px;background:var(--border2);margin:0 auto 18px}
+.modal-title{font-size:17px;font-weight:700;margin-bottom:18px}
+
+.fab{position:fixed;bottom:24px;right:20px;width:56px;height:56px;border-radius:50%;background:var(--accent);color:#fff;border:none;font-size:28px;cursor:pointer;display:none;align-items:center;justify-content:center;z-index:60;box-shadow:0 4px 16px rgba(232,80,10,.4)}
+.fab.on{display:flex}
+.divider{height:2px;background:var(--border);margin:16px 0}
+.toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:var(--text);color:#fff;padding:11px 22px;border-radius:20px;font-size:13px;font-weight:700;z-index:200;opacity:0;transition:opacity .2s;pointer-events:none;white-space:nowrap}
+.toast.on{opacity:1}
+.loading{display:flex;align-items:center;justify-content:center;padding:48px;color:var(--text2);font-size:14px;gap:10px;font-weight:500}
+.spinner{width:20px;height:20px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.empty-state{text-align:center;padding:48px 20px;color:var(--text2);font-size:14px;line-height:1.9;font-weight:500}
+@media(min-width:600px){.app{max-width:480px;margin:0 auto;border-left:2px solid var(--border);border-right:2px solid var(--border)}}
+</style>
+</head>
+<body>
+
+<div class="auth-screen" id="auth-screen">
+  <div class="auth-card">
+    <div class="auth-logo">Speaking Gym</div>
+    <div class="auth-title">학생 관리 시스템</div>
+    <div class="auth-tabs">
+      <div class="auth-tab on" onclick="setAuthMode('login')">로그인</div>
+      <div class="auth-tab" onclick="setAuthMode('signup')">회원가입</div>
+    </div>
+    <div class="err" id="auth-err"></div>
+    <div class="fg"><label class="fl">이메일</label><input type="email" id="a-email" placeholder="이메일 입력"></div>
+    <div class="fg"><label class="fl">비밀번호</label><input type="password" id="a-pw" placeholder="비밀번호 입력" onkeydown="if(event.key==='Enter')doAuth()"></div>
+    <div class="fg" id="a-pw2-wrap" style="display:none"><label class="fl">비밀번호 확인</label><input type="password" id="a-pw2" placeholder="재입력"></div>
+    <button class="btn btn-primary btn-full" onclick="doAuth()" id="a-btn">로그인</button>
+  </div>
+</div>
+
+<div class="app" id="app">
+  <div class="app-header">
+    <div class="header-left">
+      <div class="back-btn" id="back-btn" onclick="goBack()">← 목록</div>
+      <div><div class="header-title" id="header-title">스피킹짐</div><div class="header-sub" id="header-sub"></div></div>
+    </div>
+    <button class="btn btn-sm" onclick="doSignOut()">로그아웃</button>
+  </div>
+  <div class="tab-nav">
+    <div class="tab-item on" onclick="showTab('students',this)">학생목록</div>
+    <div class="tab-item" onclick="showTab('attendance',this)">출석</div>
+    <div class="tab-item" onclick="showTab('progress',this)">진행도</div>
+    <div class="tab-item" onclick="showTab('feedback',this)">피드백</div>
+    <div class="tab-item" onclick="showTab('homework',this)">숙제</div>
+  </div>
+  <div class="content">
+    <div class="section on" id="sec-students">
+      <div id="v-list"><div style="margin-bottom:12px"><input type="text" placeholder="학생 검색..." id="search-input" oninput="renderStudents()"></div><div id="student-list"></div></div>
+      <div id="v-detail" style="display:none"></div>
+    </div>
+    <div class="section" id="sec-attendance">
+      <div class="fg"><label class="fl">학생 선택</label><select id="att-sel" onchange="renderCalendar()"></select></div>
+      <div class="card">
+        <div class="month-nav"><button class="btn btn-sm" onclick="changeMonth(-1)">←</button><span id="month-lbl"></span><button class="btn btn-sm" onclick="changeMonth(1)">→</button></div>
+        <div class="cal-hdr"><span>일</span><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span>토</span></div>
+        <div class="cal-grid" id="cal-grid"></div>
+        <div class="att-legend"><span><div class="dot" style="background:var(--blue-bg);border:1.5px solid var(--blue)"></div>출석</span><span><div class="dot" style="background:var(--red-bg);border:1.5px solid var(--red)"></div>결석</span></div>
+      </div>
+      <div class="att-sum" id="att-sum"></div>
+    </div>
+    <div class="section" id="sec-progress">
+      <div class="fg"><label class="fl">학생 선택</label><select id="prog-sel" onchange="renderProgress()"></select></div>
+      <div id="prog-content"></div>
+    </div>
+    <div class="section" id="sec-feedback">
+      <div class="fg"><label class="fl">학생 선택</label><select id="fb-sel" onchange="renderFeedback()"></select></div>
+      <div id="fb-list"></div>
+      <div class="divider"></div>
+      <div class="card" id="fb-form"></div>
+    </div>
+    <div class="section" id="sec-homework">
+      <div class="fg"><label class="fl">학생 선택</label><select id="hw-sel" onchange="renderHomework()"></select></div>
+      <div id="hw-list"></div>
+      <div class="divider"></div>
+      <div id="hw-form"></div>
+    </div>
+  </div>
+</div>
+
+<button class="fab" id="fab" onclick="openAddStudent()">+</button>
+
+<div class="modal-overlay" id="modal" onclick="closeModal(event)">
+  <div class="modal"><div class="modal-handle"></div><div class="modal-title" id="modal-title"></div><div id="modal-body"></div></div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const SB_URL='https://hrmiyejhhzptwjzbrzv.supabase.co';
+const SB_KEY='sb_publishable_ateqwZSavZp7t0-_8ZeOdQ_yO9-cWnI';
+const sb=supabase.createClient(SB_URL,SB_KEY);
+
+const TEACHER_EMAILS=['noah@speakinggym.kr','masakij@naver.com','masakijj@naver.com'];
+const FB_CATS=['발음','문법','어휘','유창성','표현력','기타'];
+const PROG_KEYS=[{k:'speaking',l:'스피킹',c:'#1A6EBF'},{k:'grammar',l:'문법',c:'#1A8A4A'},{k:'vocab',l:'어휘',c:'#B86A00'},{k:'listening',l:'리스닝',c:'#6B21A8'}];
+const AV_C=['av0','av1','av2','av3','av4'];
+const CAT_CLASS={발음:'b-blue',문법:'b-orange',어휘:'b-amber',유창성:'b-green',표현력:'b-purple',기타:'b-gray'};
+
+let user=null,isTeacher=false,students=[],rowId=null;
+let calMonth=new Date().getMonth(),calYear=new Date().getFullYear();
+let hwMode='personal',hwSel=new Set();
+
+const genId=()=>Date.now()+'_'+Math.random().toString(36).slice(2,6);
+const avC=(id)=>{const i=students.findIndex(s=>s.id===id);return AV_C[(i<0?0:i)%AV_C.length]};
+const $=id=>document.getElementById(id);
+const toast=msg=>{const t=$('toast');t.textContent=msg;t.classList.add('on');setTimeout(()=>t.classList.remove('on'),2200)};
+
+let authMode='login';
+function setAuthMode(m){
+  authMode=m;
+  document.querySelectorAll('.auth-tab').forEach((t,i)=>t.classList.toggle('on',(m==='login'&&i===0)||(m==='signup'&&i===1)));
+  $('a-pw2-wrap').style.display=m==='signup'?'block':'none';
+  $('a-btn').textContent=m==='login'?'로그인':'회원가입';
+  $('auth-err').classList.remove('show');
+}
+async function doAuth(){
+  const email=$('a-email').value.trim(),pw=$('a-pw').value;
+  if(!email||!pw){showErr('이메일과 비밀번호를 입력하세요');return}
+  let res;
+  if(authMode==='login'){res=await sb.auth.signInWithPassword({email,password:pw})}
+  else{
+    const pw2=$('a-pw2').value;
+    if(pw!==pw2){showErr('비밀번호가 일치하지 않아요');return}
+    res=await sb.auth.signUp({email,password:pw});
+  }
+  if(res.error){showErr(res.error.message);return}
+  const u=res.data.user||res.data.session?.user;
+  if(!u){showErr('이메일 인증 후 로그인하세요');return}
+  enterApp(u);
+}
+function showErr(msg){const e=$('auth-err');e.textContent=msg;e.classList.add('show')}
+async function doSignOut(){
+  await sb.auth.signOut();user=null;students=[];rowId=null;
+  $('app').classList.remove('on');$('auth-screen').style.display='flex';$('fab').classList.remove('on');
+}
+async function enterApp(u){
+  user=u;isTeacher=TEACHER_EMAILS.includes(u.email);
+  $('auth-screen').style.display='none';$('app').classList.add('on');
+  $('header-sub').textContent=u.email;
+  if(isTeacher)$('fab').classList.add('on');
+  renderFbForm();renderHwForm();
+  await loadStudents();updateMonthLabel();setTodayDate();
+}
+
+async function loadStudents(){
+  $('student-list').innerHTML='<div class="loading"><div class="spinner"></div>불러오는 중...</div>';
+  if(isTeacher){
+    const {data}=await sb.from('app_data').select('*').eq('user_id',user.id).eq('app_name','students').order('updated_at',{ascending:false});
+    if(data&&data.length){students=data[0].data.students||[];rowId=data[0].id}
+    else{students=[];rowId=null}
+  } else {
+    const {data}=await sb.from('app_data').select('*').eq('app_name','students').order('updated_at',{ascending:false});
+    if(data&&data.length){const all=data[0].data.students||[];students=all.filter(s=>s.email===user.email)}
+  }
+  populateSelects();renderStudents();
+}
+async function saveStudents(){
+  const payload={students};
+  if(rowId){await sb.from('app_data').update({data:payload,updated_at:new Date().toISOString()}).eq('id',rowId)}
+  else{const{data}=await sb.from('app_data').insert({user_id:user.id,app_name:'students',data:payload}).select().single();if(data)rowId=data.id}
+}
+
+function populateSelects(){
+  ['att-sel','prog-sel','fb-sel','hw-sel'].forEach(id=>{
+    const el=$(id);if(!el)return;
+    const prev=el.value;
+    el.innerHTML='<option value="">-- 선택 --</option>'+students.map(s=>`<option value="${s.id}"${s.id===prev?' selected':''}>${s.name}</option>`).join('');
+  });
+}
+
+function renderStudents(){
+  const q=($('search-input')?.value||'').toLowerCase();
+  const list=$('student-list');
+  const f=students.filter(s=>s.name.toLowerCase().includes(q)||(s.level||'').includes(q)||(s.goal||'').includes(q));
+  if(!f.length){list.innerHTML='<div class="empty-state">등록된 학생이 없어요<br>+ 버튼으로 추가하세요</div>';return}
+  list.innerHTML=f.map(s=>{
+    const att=s.attendance||[],done=att.filter(a=>a.status==='attended').length;
+    const rate=att.length?Math.round(done/att.length*100):null;
+    const rb=rate!==null?`<span class="badge ${rate>=80?'b-green':rate>=60?'b-amber':'b-red'}">${rate}%</span>`:'';
+    const rt=s.reenrollDate?`<span class="reenroll-tag">재등록 ${s.reenrollDate}</span>`:'';
+    return`<div class="s-card" onclick="showDetail('${s.id}')"><div class="s-row">
+      <div class="avatar ${avC(s.id)}">${s.name.slice(0,2)}</div>
+      <div style="flex:1;min-width:0"><div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap"><span class="s-name">${s.name}</span>${rt}</div><div class="s-meta">${s.level||'레벨 미설정'} · ${s.goal||'목표 미설정'}</div></div>
+      <div>${rb}</div></div></div>`;
+  }).join('');
+}
+
+function showDetail(id){
+  const s=students.find(x=>x.id===id);if(!s)return;
+  $('v-list').style.display='none';$('v-detail').style.display='block';
+  $('back-btn').classList.add('on');$('header-title').textContent=s.name;
+  const att=s.attendance||[],done=att.filter(a=>a.status==='attended').length;
+  const rate=att.length?Math.round(done/att.length*100):0;
+  const hw=s.homework||[];
+  $('v-detail').innerHTML=`
+    <div class="role-banner ${isTeacher?'t-banner':'s-banner'}">${isTeacher?'선생님 계정 · 수정 가능':'내 학습 정보 · 읽기 전용'}</div>
+    <div class="stat-grid">
+      <div class="stat-card"><div class="stat-val">${done}</div><div class="stat-lbl">총 출석</div></div>
+      <div class="stat-card"><div class="stat-val" style="color:${rate>=80?'var(--green)':rate>=60?'var(--amber)':'var(--red)'}">${rate}%</div><div class="stat-lbl">출석률</div></div>
+      <div class="stat-card"><div class="stat-val">${hw.filter(h=>h.done).length}/${hw.length}</div><div class="stat-lbl">숙제 완료</div></div>
+      <div class="stat-card"><div class="stat-val">${(s.feedback||[]).length}</div><div class="stat-lbl">피드백 수</div></div>
+    </div>
+    <div class="card">
+      <div class="card-title">인적사항</div>
+      <table class="info-tbl">
+        <tr><td>연락처</td><td>${s.phone||'—'}</td></tr>
+        <tr><td>이메일</td><td>${s.email||'—'}</td></tr>
+        <tr><td>레벨</td><td>${s.level||'—'}</td></tr>
+        <tr><td>학습목표</td><td>${s.goal||'—'}</td></tr>
+        <tr><td>등록일</td><td>${s.enrollDate||'—'}</td></tr>
+        <tr><td>재등록예정</td><td style="${s.reenrollDate?'color:var(--amber);font-weight:700':''}">${s.reenrollDate||'—'}</td></tr>
+        <tr><td>특이사항</td><td>${s.notes||'—'}</td></tr>
+      </table>
+      ${isTeacher?`<button class="btn btn-sm btn-full" style="margin-top:12px" onclick="openEditStudent('${id}')">정보 수정</button>`:''}
+    </div>
+    ${isTeacher?`<button class="btn btn-danger btn-full" style="margin-top:4px" onclick="deleteStudent('${id}')">학생 삭제</button>`:''}`;
+}
+function goBack(){
+  $('v-list').style.display='block';$('v-detail').style.display='none';
+  $('back-btn').classList.remove('on');$('header-title').textContent='스피킹짐';
+}
+
+function studentForm(s){
+  return`<div class="fg"><label class="fl">이름 *</label><input type="text" id="f-name" value="${s?.name||''}"></div>
+  <div class="row2">
+    <div class="fg"><label class="fl">연락처</label><input type="tel" id="f-phone" value="${s?.phone||''}"></div>
+    <div class="fg"><label class="fl">이메일</label><input type="email" id="f-email" value="${s?.email||''}"></div>
+  </div>
+  <div class="row2">
+    <div class="fg"><label class="fl">레벨</label><select id="f-level">${['','입문','초급','중급','중상급','고급'].map(l=>`<option value="${l}"${s?.level===l?' selected':''}>${l||'선택'}</option>`).join('')}</select></div>
+    <div class="fg"><label class="fl">학습목표</label><input type="text" id="f-goal" value="${s?.goal||''}" placeholder="비즈니스, 여행 등"></div>
+  </div>
+  <div class="row2">
+    <div class="fg"><label class="fl">등록일</label><input type="date" id="f-enroll" value="${s?.enrollDate||''}"></div>
+    <div class="fg"><label class="fl">재등록 예정일</label><input type="date" id="f-reenroll" value="${s?.reenrollDate||''}"></div>
+  </div>
+  <div class="fg"><label class="fl">특이사항</label><textarea id="f-notes">${s?.notes||''}</textarea></div>
+  <button class="btn btn-primary btn-full" onclick="saveStudent('${s?.id||''}')">${s?'수정 저장':'학생 추가'}</button>`;
+}
+function openAddStudent(){$('modal-title').textContent='학생 추가';$('modal-body').innerHTML=studentForm(null);$('modal').classList.add('on')}
+function openEditStudent(id){const s=students.find(x=>x.id===id);$('modal-title').textContent='학생 정보 수정';$('modal-body').innerHTML=studentForm(s);$('modal').classList.add('on')}
+async function saveStudent(id){
+  const name=$('f-name').value.trim();if(!name){toast('이름을 입력하세요');return}
+  const d={name,phone:$('f-phone').value.trim(),email:$('f-email').value.trim(),
+    level:$('f-level').value,goal:$('f-goal').value.trim(),
+    enrollDate:$('f-enroll').value,reenrollDate:$('f-reenroll').value,notes:$('f-notes').value.trim()};
+  if(id){const s=students.find(x=>x.id===id);if(s)Object.assign(s,d)}
+  else students.push({id:genId(),...d,attendance:[],feedback:[],homework:[],progress:{}});
+  await saveStudents();closeModal();populateSelects();renderStudents();
+  if(id)showDetail(id);toast(id?'수정됐어요':'학생이 추가됐어요');
+}
+async function deleteStudent(id){
+  if(!confirm('정말 삭제할까요?'))return;
+  students=students.filter(x=>x.id!==id);
+  await saveStudents();populateSelects();goBack();toast('삭제됐어요');
+}
+
+function updateMonthLabel(){
+  const m=['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'];
+  $('month-lbl').textContent=`${calYear}년 ${m[calMonth]}`;
+}
+function changeMonth(d){calMonth+=d;if(calMonth>11){calMonth=0;calYear++}if(calMonth<0){calMonth=11;calYear--}updateMonthLabel();renderCalendar()}
+function renderCalendar(){
+  const sid=$('att-sel')?.value,grid=$('cal-grid'),sum=$('att-sum');
+  if(!grid)return;if(!sid){grid.innerHTML='';sum.innerHTML='';return}
+  const s=students.find(x=>x.id===sid);if(!s)return;
+  const first=new Date(calYear,calMonth,1).getDay(),days=new Date(calYear,calMonth+1,0).getDate(),today=new Date();
+  let html='';
+  for(let i=0;i<first;i++)html+='<div class="cal-day emp"></div>';
+  for(let d=1;d<=days;d++){
+    const ds=`${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const rec=(s.attendance||[]).find(a=>a.date===ds);
+    const isToday=today.getFullYear()===calYear&&today.getMonth()===calMonth&&today.getDate()===d;
+    let cls='cal-day';
+    if(rec?.status==='attended')cls+=' att';else if(rec?.status==='absent')cls+=' abs';
+    if(isToday)cls+=' today';
+    html+=`<div class="${cls}"${isTeacher?` onclick="toggleAtt('${sid}','${ds}')"`:''}>${d}</div>`;
+  }
+  grid.innerHTML=html;
+  const att=s.attendance||[],mn=`${calYear}-${String(calMonth+1).padStart(2,'0')}`,mA=att.filter(a=>a.date.startsWith(mn));
+  sum.innerHTML=`이번 달 출석 <b>${mA.filter(a=>a.status==='attended').length}회</b> / 결석 <b>${mA.filter(a=>a.status==='absent').length}회</b> · 전체 출석률 <b>${att.length?Math.round(att.filter(a=>a.status==='attended').length/att.length*100):0}%</b>`;
+}
+async function toggleAtt(sid,date){
+  const s=students.find(x=>x.id===sid);if(!s||!isTeacher)return;
+  if(!s.attendance)s.attendance=[];
+  const i=s.attendance.findIndex(a=>a.date===date);
+  if(i===-1)s.attendance.push({date,status:'attended'});
+  else if(s.attendance[i].status==='attended')s.attendance[i].status='absent';
+  else s.attendance.splice(i,1);
+  await saveStudents();renderCalendar();
+}
+
+function renderProgress(){
+  const sid=$('prog-sel')?.value,el=$('prog-content');
+  if(!el)return;if(!sid){el.innerHTML='<div class="empty-state">학생을 선택하세요</div>';return}
+  const s=students.find(x=>x.id===sid);if(!s)return;
+  const prog=s.progress||{};
+  el.innerHTML=`<div class="card">${PROG_KEYS.map(({k,l,c})=>`
+    <div class="prog-row">
+      <div class="prog-lrow"><span class="prog-lbl">${l}</span><span class="prog-val" id="pv-${k}" style="color:${c}">${prog[k]||0}%</span></div>
+      <div class="prog-bar"><div class="prog-fill" id="pf-${k}" style="width:${prog[k]||0}%;background:${c}"></div></div>
+      ${isTeacher?`<input type="range" min="0" max="100" value="${prog[k]||0}" step="5" oninput="updateProg('${sid}','${k}',this.value)">`:''}
+    </div>`).join('')}</div>
+  <div class="card"><div class="card-title">레벨 메모</div>
+    <textarea id="level-memo" placeholder="현재 수준 및 개선 방향..."${!isTeacher?' readonly style="background:#F7F5F2;color:var(--text2)"':''}>${s.levelMemo||''}</textarea>
+    ${isTeacher?`<button class="btn btn-sm btn-full" style="margin-top:8px" onclick="saveMemo('${sid}')">저장</button>`:''}
+  </div>`;
+}
+async function updateProg(sid,key,val){
+  const s=students.find(x=>x.id===sid);if(!s)return;
+  if(!s.progress)s.progress={};s.progress[key]=parseInt(val);
+  $('pv-'+key).textContent=val+'%';$('pf-'+key).style.width=val+'%';
+  await saveStudents();
+}
+async function saveMemo(sid){
+  const s=students.find(x=>x.id===sid);if(!s)return;
+  s.levelMemo=$('level-memo').value;await saveStudents();toast('저장됐어요');
+}
+
+function renderFbForm(){
+  const el=$('fb-form');if(!el)return;
+  if(!isTeacher){el.innerHTML='<div style="font-size:13px;color:var(--text2);font-weight:500;padding:4px 0">피드백은 선생님이 작성해요</div>';return}
+  el.innerHTML=`<div class="card-title">새 피드백</div>
+    <div class="fg"><label class="fl">카테고리</label>
+      <div class="chip-row" id="fb-chips">${FB_CATS.map((c,i)=>`<div class="chip${c==='기타'?' chip-dash':''}${i===0?' on':''}" onclick="selChip(this)">${c}</div>`).join('')}</div>
+    </div>
+    <div class="fg"><label class="fl">내용</label><textarea id="fb-text" placeholder="피드백 내용..."></textarea></div>
+    <button class="btn btn-primary btn-full" onclick="addFeedback()">저장</button>`;
+}
+function renderFeedback(){
+  const sid=$('fb-sel')?.value,el=$('fb-list');
+  if(!el)return;if(!sid){el.innerHTML='<div class="empty-state">학생을 선택하세요</div>';return}
+  const s=students.find(x=>x.id===sid);
+  const fb=[...(s?.feedback||[])].reverse();
+  if(!fb.length){el.innerHTML='<div class="empty-state">피드백이 없어요</div>';return}
+  el.innerHTML='<div class="card">'+fb.map(f=>`<div class="fb-item">
+    <div class="fb-meta"><span class="badge ${CAT_CLASS[f.category]||'b-gray'}">${f.category||'기타'}</span><span class="fb-date">${f.date}</span></div>
+    <div class="fb-text">${f.text}</div></div>`).join('')+'</div>';
+}
+function selChip(el){document.querySelectorAll('#fb-chips .chip').forEach(c=>c.classList.remove('on'));el.classList.add('on')}
+async function addFeedback(){
+  const sid=$('fb-sel')?.value;if(!sid){toast('학생을 선택하세요');return}
+  const text=$('fb-text').value.trim();if(!text){toast('내용을 입력하세요');return}
+  const cat=document.querySelector('#fb-chips .chip.on')?.textContent||'기타';
+  const s=students.find(x=>x.id===sid);
+  if(!s.feedback)s.feedback=[];
+  s.feedback.push({date:new Date().toLocaleDateString('ko-KR'),category:cat,text});
+  $('fb-text').value='';await saveStudents();renderFeedback();toast('피드백 저장됐어요');
+}
+
+function renderHwForm(){
+  const el=$('hw-form');if(!el)return;
+  if(!isTeacher){el.innerHTML='<div class="card"><div style="font-size:13px;color:var(--text2);font-weight:500">숙제는 선생님이 추가해요</div></div>';return}
+  const commonStudentChecks=students.map(s=>`
+    <div class="s-check-row">
+      <div class="s-chk ${hwSel.has(s.id)?'on':''}" onclick="toggleHwSel('${s.id}')">
+        ${hwSel.has(s.id)?`<svg width="11" height="11" viewBox="0 0 11 11"><path d="M2 5.5l2.5 2.5 4.5-5" stroke="#1A6EBF" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>`:''}
+      </div>
+      <div class="avatar ${avC(s.id)}" style="width:32px;height:32px;font-size:11px">${s.name.slice(0,2)}</div>
+      <div><div class="s-chk-name">${s.name}</div><div class="s-chk-meta">${s.level||'레벨 미설정'}</div></div>
+    </div>`).join('');
+  el.innerHTML=`<div class="card">
+    <div class="card-title">숙제 추가</div>
+    <div class="seg">
+      <div class="seg-btn ${hwMode==='personal'?'on':''}" onclick="setHwMode('personal')">개별 숙제</div>
+      <div class="seg-btn ${hwMode==='common'?'on':''}" onclick="setHwMode('common')">공통 숙제</div>
+    </div>
+    <div class="fg"><label class="fl">내용</label><input type="text" id="hw-input" placeholder="예: Unit 4 섀도잉 10분"></div>
+    <div class="fg"><label class="fl">마감일</label><input type="date" id="hw-due"></div>
+    ${hwMode==='personal'?`
+      <div class="fg"><label class="fl">학생 선택</label><select id="hw-psel"><option value="">-- 선택 --</option>${students.map(s=>`<option value="${s.id}">${s.name}</option>`).join('')}</select></div>
+      <button class="btn btn-primary btn-full" onclick="addHwPersonal()">추가</button>
+    `:`
+      <div class="fg">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+          <label class="fl" style="margin:0">대상 학생</label>
+          <span style="font-size:12px;color:var(--text2);font-weight:700">${hwSel.size}/${students.length}명 선택</span>
+        </div>
+        <div style="background:var(--bg);border:2px solid var(--border);border-radius:var(--r-sm);padding:4px 10px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between">
+          <span style="font-size:13px;font-weight:700;color:var(--accent);cursor:pointer" onclick="toggleAllHw()">${hwSel.size===students.length&&students.length>0?'전체 해제':'전체 선택'}</span>
+        </div>
+        ${commonStudentChecks}
+      </div>
+      <button class="btn btn-primary btn-full" onclick="addHwCommon()">${hwSel.size>0?`${hwSel.size}명에게 숙제 추가`:'학생을 선택하세요'}</button>
+    `}
+  </div>`;
+  setTodayDate();
+}
+function setHwMode(m){
+  hwMode=m;
+  if(m==='common'&&hwSel.size===0&&students.length>0)students.forEach(s=>hwSel.add(s.id));
+  renderHwForm();
+}
+function toggleHwSel(id){if(hwSel.has(id))hwSel.delete(id);else hwSel.add(id);renderHwForm()}
+function toggleAllHw(){if(hwSel.size===students.length)hwSel.clear();else students.forEach(s=>hwSel.add(s.id));renderHwForm()}
+
+function renderHomework(){
+  const sid=$('hw-sel')?.value,el=$('hw-list');
+  if(!el)return;if(!sid){el.innerHTML='<div class="empty-state">학생을 선택하세요</div>';return}
+  const s=students.find(x=>x.id===sid);
+  const hw=s?.homework||[];
+  if(!hw.length){el.innerHTML='<div class="empty-state">숙제가 없어요</div>';return}
+  el.innerHTML='<div class="card">'+[...hw].reverse().map((h,ri)=>{
+    const i=hw.length-1-ri;
+    const tag=`<span class="hw-tag ${h.type==='common'?'tag-c':'tag-p'}">${h.type==='common'?'공통':'개별'}</span>`;
+    return`<div class="hw-row">
+      <div class="hw-check ${h.done?'done':''}"${isTeacher?` onclick="toggleHW('${sid}',${i})"`:''}>${h.done?`<svg width="12" height="12" viewBox="0 0 12 12"><path d="M2 6l3 3 5-5" stroke="#1A8A4A" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>`:''}</div>
+      <div style="flex:1"><div class="hw-title ${h.done?'hw-done-text':''}">${h.title}${tag}</div>${h.due?`<div class="hw-due">마감 ${h.due}${h.done?' · 완료':''}</div>`:''}</div>
+    </div>`;
+  }).join('')+'</div>';
+}
+async function addHwPersonal(){
+  const sid=$('hw-psel')?.value;if(!sid){toast('학생을 선택하세요');return}
+  const title=$('hw-input')?.value.trim();if(!title){toast('내용을 입력하세요');return}
+  const due=$('hw-due')?.value;
+  const s=students.find(x=>x.id===sid);
+  if(!s.homework)s.homework=[];
+  s.homework.push({title,due,done:false,type:'personal'});
+  $('hw-input').value='';await saveStudents();renderHomework();renderHwForm();toast('숙제 추가됐어요');
+}
+async function addHwCommon(){
+  if(!hwSel.size){toast('학생을 선택하세요');return}
+  const title=$('hw-input')?.value.trim();if(!title){toast('내용을 입력하세요');return}
+  const due=$('hw-due')?.value;
+  const cnt=hwSel.size;
+  students.forEach(s=>{
+    if(!hwSel.has(s.id))return;
+    if(!s.homework)s.homework=[];
+    s.homework.push({title,due,done:false,type:'common'});
+  });
+  $('hw-input').value='';hwSel.clear();
+  await saveStudents();renderHomework();renderHwForm();toast(`${cnt}명에게 숙제 추가됐어요`);
+}
+async function toggleHW(sid,i){
+  const s=students.find(x=>x.id===sid);if(!s||!s.homework[i]||!isTeacher)return;
+  s.homework[i].done=!s.homework[i].done;await saveStudents();renderHomework();
+}
+
+function showTab(tab,el){
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('on'));
+  document.querySelectorAll('.tab-item').forEach(t=>t.classList.remove('on'));
+  $('sec-'+tab).classList.add('on');el.classList.add('on');
+  if(tab==='attendance')renderCalendar();
+  if(tab==='progress')renderProgress();
+  if(tab==='feedback')renderFeedback();
+  if(tab==='homework'){renderHomework();renderHwForm()}
+}
+function closeModal(e){if(!e||e.target===$('modal'))$('modal').classList.remove('on')}
+function setTodayDate(){const t=new Date().toISOString().split('T')[0];const el=$('hw-due');if(el)el.value=t}
+
+(async()=>{const{data:{session}}=await sb.auth.getSession();if(session?.user)enterApp(session.user)})();
+</script>
+</body>
+</html>
